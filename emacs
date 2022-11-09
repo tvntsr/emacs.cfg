@@ -76,6 +76,11 @@
 (setq company-idle-delay 0)
 (setq company-minimum-prefix-length 1)
 
+(defun f-go-mode-hook ()
+    (local-set-key (kbd "C-c C-c") 'comment-region)
+)
+(add-hook 'go-mode-hook #'f-go-mode-hook)
+
 ;; Set up before-save hooks to format buffer and add/delete imports.
 (defun lsp-go-install-save-hooks ()
   (add-hook 'before-save-hook #'lsp-format-buffer t t)
@@ -107,6 +112,38 @@
 ;; (require 'json-mode)
 (add-hook 'json-mode-hook #'flycheck-mode)
 
+;; Markdown
+(use-package markdown-mode
+  :commands (markdown-mode gfm-mode)
+  :mode (("README\\.md\\'" . gfm-mode)
+         ("\\.gfm\\'" . gfm-mode)
+         ("\\.md\\'" . markdown-mode)
+         ("\\.apib\\'" . markdown-mode)  ; Apiary
+         ("\\.markdown\\'" . markdown-mode))
+;;  :config (progn
+;;            ;; Markdown-cycle behaves like org-cycle, but by default is only
+;;            ;; enabled in insert mode. gfm-mode-map inherits from
+;;            ;; markdown-mode-map, so this will enable it in both.
+;;            (evil-define-key 'normal markdown-mode-map
+;;              (kbd "TAB") 'markdown-cycle
+;;              "gk" 'markdown-previous-visible-heading
+;;              "gj" 'markdown-next-visible-heading))
+)
+
+;; Docker
+(use-package dockerfile-mode)
+(use-package docker-compose-mode
+  :mode "docker-compose\\'")
+
+;; YAML
+(use-package yaml-mode
+  :mode "\\.ya?ml\\'"
+  :hook
+  (yaml-mode . highlight-indent-guides-mode)
+  (yaml-mode . display-line-numbers-mode))
+
+
+
 
 ;; LSP, common
 
@@ -121,6 +158,7 @@
            (go-mode . lsp)
            (c-mode . lsp)
            (c++-mode . lsp)
+           (python-mode . lsp) ;; pip install "python-lsp-server[all]"
    )
 )
 
