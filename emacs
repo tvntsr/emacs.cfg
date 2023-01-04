@@ -2,17 +2,16 @@
 (tool-bar-mode -1)
 (load-theme 'wombat)
 
-;;; Shortcuts
+;;; Default shortcuts
 (setq-default indent-tabs-mode nil)
 (setq default-tab-width 4)
-
 (global-set-key "\M-?" 'goto-line)
 (global-set-key (kbd "<C-return>") 'set-mark-command)
-(global-set-key (kbd "M-*") 'pop-tag-mark)
-
 (setq c-default-style "ellemtel"
           c-basic-offset 4
           tab-width 4)
+
+(global-set-key (kbd "M-*") 'pop-tag-mark)
 
 ;;; package manager
 (require 'package)
@@ -24,13 +23,18 @@
 ;;;(require 'function-args)
 ;;;(fa-config-default)
 
-;; Using gtags
-
 (require 'ggtags)
 (add-hook 'c-mode-common-hook
           (lambda ()
             (when (derived-mode-p 'c-mode 'c++-mode 'java-mode)
               (ggtags-mode 1))))
+
+;;
+(require 'company-go)
+(push 'company-lsp company-backends)
+
+(setq company-idle-delay 0)
+(setq company-minimum-prefix-length 1)
 
 ;; Origami - Does code folding, ie hide the body of an
 ;; if/else/for/function so that you can fit more code on your screen
@@ -69,30 +73,6 @@
   (add-to-list 'origami-parser-alist '(python-mode . origami-indent-parser))
   )
 
-;; GoLang related config
-(require 'company-go)
-(push 'company-lsp company-backends)
-
-(setq company-idle-delay 0)
-(setq company-minimum-prefix-length 1)
-
-(defun f-go-mode-hook ()
-    (local-set-key (kbd "C-c C-c") 'comment-region)
-)
-(add-hook 'go-mode-hook #'f-go-mode-hook)
-
-;; Set up before-save hooks to format buffer and add/delete imports.
-(defun lsp-go-install-save-hooks ()
-  (add-hook 'before-save-hook #'lsp-format-buffer t t)
-  (add-hook 'before-save-hook #'lsp-organize-imports t t))
-(add-hook 'go-mode-hook #'lsp-go-install-save-hooks)
-
-;; Start LSP Mode and YASnippet mode
-(add-hook 'go-mode-hook #'lsp-deferred)
-(add-hook 'go-mode-hook #'yas-minor-mode)
-
-;; C++ Part
-
 ;; Modern C++ code highlighting
 (use-package modern-cpp-font-lock
   :ensure t
@@ -108,11 +88,11 @@
   )
 
 ;; json
-
 ;; (require 'json-mode)
 (add-hook 'json-mode-hook #'flycheck-mode)
+(add-hook 'json-mode-hook #'display-line-numbers-mode)
 
-;; Markdown
+
 (use-package markdown-mode
   :commands (markdown-mode gfm-mode)
   :mode (("README\\.md\\'" . gfm-mode)
@@ -143,10 +123,6 @@
   (yaml-mode . display-line-numbers-mode))
 
 
-
-
-;; LSP, common
-
 ;; lsp-mode
 (use-package lsp-mode
     :commands (lsp lsp-deferred)
@@ -155,12 +131,30 @@
 ;;    :config
 ;;        (lsp-enable-which-key-integration t)
     :hook (
-           (go-mode . lsp)
-           (c-mode . lsp)
-           (c++-mode . lsp)
-           (python-mode . lsp) ;; pip install "python-lsp-server[all]"
-   )
+        (go-mode . lsp)
+        (c-mode . lsp)
+        (c++-mode . lsp)
+        (python-mode . lsp) ;; pip install "python-lsp-server[all]"
+       )
 )
+
+;;(add-hook 'c-mode-hook 'lsp)
+;;(add-hook 'c++-mode-hook 'lsp)
+
+(defun f-go-mode-hook ()
+    (local-set-key (kbd "C-c C-c") 'comment-region)
+)
+(add-hook 'go-mode-hook #'f-go-mode-hook)
+
+;; Set up before-save hooks to format buffer and add/delete imports.
+(defun lsp-go-install-save-hooks ()
+  (add-hook 'before-save-hook #'lsp-format-buffer t t)
+  (add-hook 'before-save-hook #'lsp-organize-imports t t))
+(add-hook 'go-mode-hook #'lsp-go-install-save-hooks)
+
+;; Start LSP Mode and YASnippet mode
+(add-hook 'go-mode-hook #'lsp-deferred)
+(add-hook 'go-mode-hook #'yas-minor-mode)
 
 (use-package lsp-ui
   :hook (lsp-mode . lsp-ui-mode)
@@ -177,8 +171,7 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(package-selected-packages
-   (quote
-    (origami json-mode smex counsel cmake-mode yasnippet use-package lsp-mode ggtags company-go))))
+   '(origami json-mode smex counsel cmake-mode yasnippet use-package lsp-mode ggtags company-go)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
@@ -209,3 +202,4 @@
   (add-hook 'lsp-mode-hook #'lsp-enable-which-key-integration)
 ;; (require 'dap-cpptools)
   (yas-global-mode))
+
