@@ -16,6 +16,8 @@
 
 (global-set-key (kbd "C-c C-c") 'comment-region)
 
+(global-set-key (kbd "M-*") 'pop-tag-mark)
+
 ;;; package manager
 (add-to-list 'package-archives
              '("melpa-stable" . "https://stable.melpa.org/packages/") t)
