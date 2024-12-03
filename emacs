@@ -7,15 +7,19 @@
 (setq default-tab-width 4)
 (global-set-key "\M-?" 'goto-line)
 (global-set-key (kbd "<C-return>") 'set-mark-command)
-(setq c-default-style "ellemtel"
-          c-basic-offset 4
-          tab-width 4)
+
+(setq-default c-basic-offset 4
+        tab-width 4
+        indent-tabs-mode t)
 
 (global-set-key (kbd "M-*") 'pop-tag-mark)
 
+(global-set-key (kbd "C-c C-c") 'comment-region)
+
 ;;; package manager
-(require 'package)
-(add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
+(add-to-list 'package-archives
+             '("melpa-stable" . "https://stable.melpa.org/packages/") t)
+;;(add-to-list 'package-archives '("gnu" . "http://elpa.gnu.org/packages/") t)
 (package-initialize)
 
 (require 'use-package)
@@ -122,14 +126,16 @@
   (yaml-mode . highlight-indent-guides-mode)
   (yaml-mode . display-line-numbers-mode))
 
+(use-package which-key)
+(which-key-mode)
 
 ;; lsp-mode
 (use-package lsp-mode
     :commands (lsp lsp-deferred)
     :init
         (setq lsp-keymap-prefix "C-c l")
-;;    :config
-;;        (lsp-enable-which-key-integration t)
+    :config
+        (lsp-enable-which-key-integration t)
     :hook (
         (go-mode . lsp)
         (c-mode . lsp)
@@ -138,8 +144,8 @@
        )
 )
 
-;;(add-hook 'c-mode-hook 'lsp)
-;;(add-hook 'c++-mode-hook 'lsp)
+(with-eval-after-load 'lsp-mode
+  (add-hook 'lsp-mode-hook #'lsp-enable-which-key-integration))
 
 (defun f-go-mode-hook ()
     (local-set-key (kbd "C-c C-c") 'comment-region)
@@ -161,6 +167,11 @@
   :config
       (setq lsp-ui-doc-enable t))
 
+(use-package lsp-treemacs
+  :ensure t
+  :commands lsp-treemacs-errors-list)
+
+
 ;; To set the garbage collection threshold to high (100 MB) since LSP client-server communication generates a lot of output/garbage
 ;; (setq gc-cons-threshold 100000000)
 ;; To increase the amount of data Emacs reads from a process
@@ -171,7 +182,7 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(package-selected-packages
-   '(origami json-mode smex counsel cmake-mode yasnippet use-package lsp-mode ggtags company-go)))
+   '(yaml-mode lsp-ui origami json-mode smex counsel cmake-mode yasnippet use-package lsp-mode ggtags company-go)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
