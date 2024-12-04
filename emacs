@@ -4,43 +4,50 @@
 
 ;;; Default shortcuts
 (setq-default indent-tabs-mode nil)
-(setq default-tab-width 4)
-(global-set-key "\M-?" 'goto-line)
-(global-set-key (kbd "<C-return>") 'set-mark-command)
-
 (setq-default c-basic-offset 4
         tab-width 4
         indent-tabs-mode t)
 
+;;; Global keys definition
+(global-set-key "\M-?" 'goto-line)
+(global-set-key (kbd "<C-return>") 'set-mark-command)
 (global-set-key (kbd "M-*") 'pop-tag-mark)
-
 (global-set-key (kbd "C-c C-c") 'comment-region)
 
-(global-set-key (kbd "M-*") 'pop-tag-mark)
-
 ;;; package manager
+(require 'package)
 (add-to-list 'package-archives
              '("melpa-stable" . "https://stable.melpa.org/packages/") t)
+;;             '("melpa" . "https://melpa.org/packages/") t)
 ;;(add-to-list 'package-archives '("gnu" . "http://elpa.gnu.org/packages/") t)
+
 (package-initialize)
 
+(require 'xref) ;; or at least update it
+(require 'yasnippet)
+(require 'origami)
 (require 'use-package)
+(require 'which-key)
+(require 'company)
 
-;;;(require 'function-args)
-;;;(fa-config-default)
 
-(require 'ggtags)
-(add-hook 'c-mode-common-hook
-          (lambda ()
-            (when (derived-mode-p 'c-mode 'c++-mode 'java-mode)
-              (ggtags-mode 1))))
+;;(require 'ggtags)
+;;(add-hook 'c-mode-common-hook
+;;          (lambda ()
+;;            (when (derived-mode-p 'c-mode 'c++-mode 'java-mode)
+;;              (ggtags-mode 1))))
 
 ;;
-(require 'company-go)
-(push 'company-lsp company-backends)
+(use-package company
+    :after lsp-mode
+    :init
+        (setq company-idle-delay 0)
+        (setq company-minimum-prefix-length 1)
+)
 
-(setq company-idle-delay 0)
-(setq company-minimum-prefix-length 1)
+;; which-key
+(use-package which-key)
+(which-key-mode)
 
 ;; Origami - Does code folding, ie hide the body of an
 ;; if/else/for/function so that you can fit more code on your screen
@@ -79,6 +86,46 @@
   (add-to-list 'origami-parser-alist '(python-mode . origami-indent-parser))
   )
 
+;; lsp-mode
+(use-package lsp-mode
+  :commands (lsp lsp-deferred)
+  :init
+      (setq lsp-keymap-prefix "C-c l")
+  :config
+      (define-key lsp-mode-map (kbd "C-c l") lsp-command-map)
+      (lsp-enable-which-key-integration t)
+  :hook 
+        (lsp-mode . lsp-enable-which-key-integration)
+        (go-mode . lsp)
+        (python-mode . lsp) ;; pip install "python-lsp-server[all]"
+        (js2-mode . lsp)
+        (ruby-mode . lsp)
+        (c-mode . lsp)
+        (c++-mode . lsp)
+)
+
+(use-package lsp-ui
+  :hook (lsp-mode . lsp-ui-mode)
+  :config
+      (setq lsp-ui-doc-enable t))
+
+(use-package lsp-treemacs
+  :ensure t
+  :commands lsp-treemacs-errors-list)
+
+;; Go
+(use-package go-mode
+    :hook
+        (go-mode . lsp-deferred)
+        (go-mode . yas-minor-mode)
+)
+
+(defun lsp-go-install-save-hooks ()
+  (add-hook 'before-save-hook #'lsp-format-buffer t t)
+  (add-hook 'before-save-hook #'lsp-organize-imports t t))
+(add-hook 'go-mode-hook #'lsp-go-install-save-hooks)
+
+
 ;; Modern C++ code highlighting
 (use-package modern-cpp-font-lock
   :ensure t
@@ -98,7 +145,7 @@
 (add-hook 'json-mode-hook #'flycheck-mode)
 (add-hook 'json-mode-hook #'display-line-numbers-mode)
 
-
+;; Markdown
 (use-package markdown-mode
   :commands (markdown-mode gfm-mode)
   :mode (("README\\.md\\'" . gfm-mode)
@@ -116,10 +163,34 @@
 ;;              "gj" 'markdown-next-visible-heading))
 )
 
+;; Typescript
+(use-package typescript-mode
+  :mode "\\.ts\\'"
+  :hook (typescript-mode . lsp-deferred)
+  :config
+  (setq typescript-indent-level 2)
+)
+
+(use-package js2-mode
+    :mode "\\.js\\'"
+    :ensure t
+    :hook (js2-mode . lsp-deferred)
+    :config
+    (setq js2-basic-offset 2)
+)
+
 ;; Docker
-(use-package dockerfile-mode)
+(use-package dockerfile-mode
+  :hook
+      (dockerfile-mode . display-line-numbers-mode)
+)
+
 (use-package docker-compose-mode
-  :mode "docker-compose\\'")
+  :ensure t
+  :mode "docker-compose\\'"
+  :hook
+      (docker-compose-mode . display-line-numbers-mode)
+)
 
 ;; YAML
 (use-package yaml-mode
@@ -128,31 +199,37 @@
   (yaml-mode . highlight-indent-guides-mode)
   (yaml-mode . display-line-numbers-mode))
 
-(use-package which-key)
-(which-key-mode)
-
-;; lsp-mode
-(use-package lsp-mode
-    :commands (lsp lsp-deferred)
-    :init
-        (setq lsp-keymap-prefix "C-c l")
-    :config
-        (lsp-enable-which-key-integration t)
-    :hook (
-        (go-mode . lsp)
-        (c-mode . lsp)
-        (c++-mode . lsp)
-        (python-mode . lsp) ;; pip install "python-lsp-server[all]"
-       )
+;; Terraform
+(use-package terraform-mode
+    :mode "\\.tf\\'"
+    :ensure t
+    :custom (terraform-format-on-save t)
+    :hook
+      (terraform-mode . display-line-numbers-mode)
 )
 
-(with-eval-after-load 'lsp-mode
-  (add-hook 'lsp-mode-hook #'lsp-enable-which-key-integration))
+(use-package flycheck-yamllint
+  :ensure t
+  :after (flycheck yaml-mode)
+  :commands (flycheck-yamllint-setup)
+  :hook (yaml-mode . flycheck-yamllint-setup))
 
-(defun f-go-mode-hook ()
-    (local-set-key (kbd "C-c C-c") 'comment-region)
+
+;; Ruby
+;; apt-get install ruby-dev
+;; gem install solargraph
+(use-package flymake-ruby
+    :ensure t
 )
-(add-hook 'go-mode-hook #'f-go-mode-hook)
+
+(use-package ruby-mode
+    :ensure t
+    :hook (;;(ruby-mode . lsp-deferred)
+        (ruby-mode . flymake-ruby-load))
+    :custom
+      (ruby-insert-encoding-magic-comment nil "Not needed in Ruby 2")
+)
+
 
 ;; Set up before-save hooks to format buffer and add/delete imports.
 (defun lsp-go-install-save-hooks ()
@@ -160,59 +237,16 @@
   (add-hook 'before-save-hook #'lsp-organize-imports t t))
 (add-hook 'go-mode-hook #'lsp-go-install-save-hooks)
 
-;; Start LSP Mode and YASnippet mode
-(add-hook 'go-mode-hook #'lsp-deferred)
-(add-hook 'go-mode-hook #'yas-minor-mode)
-
-(use-package lsp-ui
-  :hook (lsp-mode . lsp-ui-mode)
-  :config
-      (setq lsp-ui-doc-enable t))
-
-(use-package lsp-treemacs
-  :ensure t
-  :commands lsp-treemacs-errors-list)
-
-
-;; To set the garbage collection threshold to high (100 MB) since LSP client-server communication generates a lot of output/garbage
-;; (setq gc-cons-threshold 100000000)
-;; To increase the amount of data Emacs reads from a process
-;; (setq read-process-output-max (* 1024 1024)) 
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(package-selected-packages
-   '(yaml-mode lsp-ui origami json-mode smex counsel cmake-mode yasnippet use-package lsp-mode ggtags company-go)))
+   '(dockerfile-mode highlight-indentation typescript-mode xref yasnippet go-mode flymake-ruby flycheck-yamllint terraform-mode docker-compose-mode js2-mode modern-cpp-font-lock lsp-treemacs origami smex counsel cmake-mode which-key use-package gnu-elpa-keyring-update eldoc)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  )
-
-
-;; (setq package-selected-packages '(lsp-mode yasnippet lsp-treemacs helm-lsp
-;;    projectile hydra flycheck company avy which-key helm-xref dap-mode))
-
-;; (when (cl-find-if-not #'package-installed-p package-selected-packages)
-;;  (package-refresh-contents)
-;;  (mapc #'package-install package-selected-packages))
-
-;; sample `helm' configuration use https://github.com/emacs-helm/helm/ for details
-
-;; (which-key-mode)
-
-(setq gc-cons-threshold (* 100 1024 1024)
-      read-process-output-max (* 1024 1024)
-      treemacs-space-between-root-nodes nil
-      company-idle-delay 0.0
-      company-minimum-prefix-length 1
-      lsp-idle-delay 0.1)  ;; clangd is fast
-
-(with-eval-after-load 'lsp-mode
-  (add-hook 'lsp-mode-hook #'lsp-enable-which-key-integration)
-;; (require 'dap-cpptools)
-  (yas-global-mode))
-
